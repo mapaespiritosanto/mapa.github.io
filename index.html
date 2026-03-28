@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Mapa de Expansão ES - Completo</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #f4f7f6; color: #333; margin: 20px; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        
+        h1 { color: #2c3e50; margin-bottom: 5px; }
+        .subtitulo { color: #7f8c8d; margin-bottom: 25px; font-size: 14px; }
+
+        /* Legenda */
+        .legenda { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; }
+        .item-legenda { display: flex; align-items: center; font-size: 13px; font-weight: 500; }
+        .box { width: 18px; height: 18px; margin-right: 6px; border-radius: 3px; border: 1px solid #ddd; }
+        
+        /* Cores de Status */
+        .cinza { background-color: #dcdde1; color: #2f3640; } /* Sem ação */
+        .amarelo { background-color: #f1c40f; color: #000; } /* Visitas */
+        .verde-claro { background-color: #2ecc71; color: #fff; } /* Grupos familiares */
+        .verde-escuro { background-color: #27ae60; color: #fff; } /* Igreja sólida */
+
+        /* Grid do Mapa */
+        #mapa { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); 
+            gap: 10px; 
+            margin-bottom: 30px;
+        }
+
+        .cidade { 
+            padding: 12px 5px; cursor: pointer; border-radius: 5px; 
+            transition: all 0.2s ease; border: 1px solid #eee;
+            font-size: 11px; font-weight: bold; text-transform: uppercase;
+            display: flex; align-items: center; justify-content: center;
+            min-height: 45px;
+        }
+        .cidade:hover { filter: brightness(0.9); transform: translateY(-2px); }
+
+        /* Estilo dos Botões conforme a imagem */
+        .area-botoes { 
+            display: flex; justify-content: center; gap: 15px; 
+            margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; 
+        }
+        .btn { 
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 20px; font-size: 15px; font-weight: bold; 
+            color: white; border: none; border-radius: 6px; cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-blue { background-color: #0077b6; }
+        .btn-blue:hover { background-color: #005f91; }
+        .btn-red { background-color: #e63946; }
+        .btn-red:hover { background-color: #c12e3a; }
+        
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Mapa de Expansão - Espírito Santo</h1>
+    <p class="subtitulo">Clique nas cidades para alternar entre os níveis de progresso.</p>
+    
+    <div class="legenda">
+        <div class="item-legenda"><div class="box cinza"></div> Sem ação</div>
+        <div class="item-legenda"><div class="box amarelo"></div> Fazemos visitas</div>
+        <div class="item-legenda"><div class="box verde-claro"></div> Grupos familiares</div>
+        <div class="item-legenda"><div class="box verde-escuro"></div> Igreja sólida</div>
+    </div>
+
+    <div id="mapa"></div>
+
+    <div class="area-botoes">
+        <button class="btn btn-blue" onclick="salvar()">💾 Salvar Progresso</button>
+        <button class="btn btn-blue" onclick="relatorio()">📊 Gerar Relatório</button>
+        <button class="btn btn-red" onclick="limpar()">🗑️ Limpar Tudo</button>
+    </div>
+</div>
+
+<script>
+// Lista completa dos 78 municípios
+const municipios = [
+    "Afonso Cláudio", "Água Doce do Norte", "Águia Branca", "Alegre", "Alfredo Chaves", "Alto Rio Novo", "Anchieta", "Apiacá", "Aracruz", "Atilio Vivacqua", 
+    "Baixo Guandu", "Barra de São Francisco", "Boa Esperança", "Bom Jesus do Norte", "Brejetuba", "Cachoeiro de Itapemirim", "Cariacica", "Castelo", "Colatina", "Conceição da Barra", 
+    "Conceição do Castelo", "Divino de São Lourenço", "Domingos Martins", "Dores do Rio Preto", "Ecoporanga", "Fundão", "Governador Lindenberg", "Guaçuí", "Guarapari", "Ibatiba", 
+    "Ibiraçu", "Ibitirama", "Iconha", "Irupi", "Itaguaçu", "Itapemirim", "Itarana", "Iúna", "Jaguaré", "Jerônimo Monteiro", 
+    "João Neiva", "Laranja da Terra", "Linhares", "Mantenópolis", "Marataízes", "Marechal Floriano", "Marilândia", "Mimoso do Sul", "Montanha", "Mucurici", 
+    "Muniz Freire", "Muqui", "Nova Venécia", "Pancas", "Pedro Canário", "Pinheiros", "Piúma", "Ponto Belo", "Presidente Kennedy", "Rio Bananal", 
+    "Rio Novo do Sul", "Santa Leopoldina", "Santa Maria de Jetibá", "Santa Teresa", "São Domingos do Norte", "São Gabriel da Palha", "São José do Calçado", "São Mateus", "São Roque do Canaã", "Serra", 
+    "Sooretama", "Vargem Alta", "Venda Nova do Imigrante", "Viana", "Vila Pavão", "Vila Valério", "Vila Velha", "Vitória"
+];
+
+const estados = ['cinza', 'amarelo', 'verde-claro', 'verde-escuro'];
+let statusData = JSON.parse(localStorage.getItem('expansao_es_final')) || {};
+
+function render() {
+    const mapa = document.getElementById('mapa');
+    mapa.innerHTML = '';
+
+    municipios.forEach(nome => {
+        let div = document.createElement('div');
+        let atual = statusData[nome] || 'cinza';
+        
+        div.className = `cidade ${atual}`;
+        div.innerText = nome;
+
+        div.onclick = () => {
+            let idx = estados.indexOf(atual);
+            statusData[nome] = estados[(idx + 1) % estados.length];
+            render();
+        };
+
+        mapa.appendChild(div);
+    });
+}
+
+function salvar() {
+    localStorage.setItem('expansao_es_final', JSON.stringify(statusData));
+    alert('✅ Progresso salvo com sucesso!');
+}
+
+function relatorio() {
+    let total = municipios.length;
+    let s = { 'verde-escuro': 0, 'verde-claro': 0, 'amarelo': 0, 'cinza': 0 };
+    municipios.forEach(m => s[statusData[m] || 'cinza']++);
+
+    alert(`RELATÓRIO DE EXPANSÃO\n\n` +
+          `⛪ Igreja Sólida: ${s['verde-escuro']}\n` +
+          `👥 Grupos Familiares: ${s['verde-claro']}\n` +
+          `🚗 Visitas: ${s['amarelo']}\n` +
+          `⚪ Sem Ação: ${s['cinza']}\n\n` +
+          `Total: ${total} municípios`);
+}
+
+function limpar() {
+    if(confirm("Tem certeza que deseja apagar todo o progresso?")) {
+        statusData = {};
+        localStorage.removeItem('expansao_es_final');
+        render();
+    }
+}
+
+render();
+</script>
+</body>
+</html>
